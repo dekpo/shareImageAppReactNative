@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import uploadToAnonymousFilesAsync from 'anonymous-files'; 
 
 export default function App() {
 //utilisation du State pour stocker l'image reçue
@@ -24,14 +25,21 @@ let openImagePickerAsync = async () => {
   if (pickerResult.cancelled === true){
     return
   }
-  // sinon c'est bon on stocke l'adresse de l'image dans une propriété localUri
-  setSelectedImage( {localUri: pickerResult.uri} );
+  // sinon c'est bon on stocke l'adresse de l'image dans une propriété localUri avec setSelectedImage()
+  // mais éventuellement avant on vérifie si Platform.OS est 'web' dans ce cas on peut uploader sur AnonymousFiles
+  if (Platform.OS === 'web'){
+    let remoteUri = await uploadToAnonymousFilesAsync(pickerResult.uri);
+    setSelectedImage( {localUri: pickerResult.uri, remoteUri} );
+  } else {
+    setSelectedImage( {localUri: pickerResult.uri, remoteUri: null} );
+  }
+  
 }
 
 // methode pour partager l'image
 let openShareAsync = async () => {
   if ( !(await Sharing.isAvailableAsync()) ) {
-    alert("Oups no sharing available on your platform...");
+    alert("Oups no sharing available on your platform but the image is available for sharing at: " + selectedImage.remoteUri );
     return
   }
   await Sharing.shareAsync( selectedImage.localUri );
